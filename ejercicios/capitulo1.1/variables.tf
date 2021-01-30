@@ -14,7 +14,7 @@ variable "storage_account_name" {
 }
 
 variable "containers" {
-  type        = list
+  type        = list(any)
   description = "Nombres esperados para los blob containers"
   default     = ["storagelogs", "receivedfiles", "movements", "events"]
 }

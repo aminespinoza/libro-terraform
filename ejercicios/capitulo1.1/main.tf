@@ -23,15 +23,6 @@ resource "azurerm_storage_container" "container" {
   container_access_type = "private"
 }
 
-resource "azurerm_virtual_network" "network" {
-  name          = var.network_name
-  address_space = ["10.1.2.0/24"]
-  location      = azurerm_resource_group.rg.location
 
-  subnet {
-    name           = var.subnet_name
-    address_prefix = "10.1.2.0/25"
-  }
-}
 
 
