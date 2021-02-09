@@ -1,0 +1,5 @@
+rg_name              = "azure-functions-test-rg"
+rg_location          = "westus2"
+storage_account_name = "functionsappteststorage"
+app_service_name     = "azure-functions-test-service-plan"
+function_name        = "libro-azure-functions"
