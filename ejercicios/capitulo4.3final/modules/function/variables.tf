@@ -39,6 +39,7 @@ variable "app_service_plan_sku_tier" {
 variable "app_service_plan_sku_size" {
   type        = string
   description = "Tamaño del sku del App Service Plan"
+  default     = "S1"
 }
 
 variable "function_name" {
