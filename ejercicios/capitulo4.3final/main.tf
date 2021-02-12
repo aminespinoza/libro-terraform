@@ -15,3 +15,7 @@ module "azure_function" {
   app_service_plan_sku_tier = "Basic"
   app_service_plan_sku_size = "B2"
 }
+
+output "funciont_url" {
+  value = module.azure_function.default_hostname
+}
