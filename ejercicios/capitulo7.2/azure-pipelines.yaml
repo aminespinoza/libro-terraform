@@ -1,0 +1,70 @@
+trigger:
+  branches:
+    include:
+      - main
+
+stages:
+- stage: validate
+  jobs:
+    - job: Validate
+      continueOnError: false
+      steps:
+      - task: TerraformInstaller@0
+        inputs:
+          terraformVersion: '0.12.3'
+      - task: TerraformTaskV2@2
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          backendServiceArm: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
+          backendAzureRmResourceGroupName: 'BotsEnvironment'
+          backendAzureRmStorageAccountName: 'generastorageamin'
+          backendAzureRmContainerName: 'devopsterraform'
+          backendAzureRmKey: 'devopsterraform'
+      - task: TerraformTaskV2@2
+        inputs:
+          provider: 'azurerm'
+          command: 'validate'
+      
+      - task: CmdLine@2
+        inputs:
+          script: |
+            terraform fmt --recursive
+            
+            echo Formatting all Terraform files
+          workingDirectory: '$(System.DefaultWorkingDirectory)'
+- stage: deploy
+  jobs:
+    - deployment: Terraform_deploy
+      continueOnError: false
+      environment: 'dev'
+      strategy:
+       runOnce:
+        deploy:
+         steps:
+           - checkout: self
+           - task: TerraformInstaller@0
+             displayName: 'install'
+             inputs:
+               terraformVersion: '0.12.3'
+           - task: TerraformTaskV2@2
+             inputs:
+               provider: 'azurerm'
+               command: 'init'
+               backendServiceArm: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
+               backendAzureRmResourceGroupName: 'BotsEnvironment'
+               backendAzureRmStorageAccountName: 'generastorageamin'
+               backendAzureRmContainerName: 'devopsterraform'
+               backendAzureRmKey: 'devopsterraform'
+           - task: TerraformTaskV2@2
+             inputs:
+               provider: 'azurerm'
+               command: 'plan'
+               environmentServiceNameAzureRM: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
+           - task: TerraformTaskV2@2
+             inputs:
+               provider: 'azurerm'
+               command: 'apply'
+               environmentServiceNameAzureRM: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
+
+
