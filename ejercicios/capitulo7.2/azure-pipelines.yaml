@@ -3,6 +3,9 @@ trigger:
     include:
       - main
 
+variables:
+  - group: SecureVariables
+
 stages:
 - stage: validate
   jobs:
@@ -10,23 +13,30 @@ stages:
       continueOnError: false
       steps:
       - task: TerraformInstaller@0
+        displayName: 'Terraform install'
         inputs:
-          terraformVersion: '0.12.3'
+          terraformVersion: '0.14.4'
       - task: TerraformTaskV2@2
+        displayName: 'Init Terraform'
+        env:
+          TF_STATE_BLOB_SAS_TOKEN: $(statesas)
         inputs:
           provider: 'azurerm'
           command: 'init'
+          commandOptions: '-backend-config="sas_token=$TF_STATE_BLOB_SAS_TOKEN"'
           backendServiceArm: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
           backendAzureRmResourceGroupName: 'BotsEnvironment'
           backendAzureRmStorageAccountName: 'generastorageamin'
-          backendAzureRmContainerName: 'devopsterraform'
-          backendAzureRmKey: 'devopsterraform'
+          backendAzureRmContainerName: 'devopsstate'
+          backendAzureRmKey: 'terraform.tfstate'
       - task: TerraformTaskV2@2
+        displayName: 'Validate Terraform'
         inputs:
           provider: 'azurerm'
           command: 'validate'
       
       - task: CmdLine@2
+        displayName: 'Terraform format'
         inputs:
           script: |
             terraform fmt --recursive
@@ -46,25 +56,38 @@ stages:
            - task: TerraformInstaller@0
              displayName: 'install'
              inputs:
-               terraformVersion: '0.12.3'
+               terraformVersion: '0.14.4'
            - task: TerraformTaskV2@2
+             displayName: 'Init Terraform'
+             env:
+              TF_STATE_BLOB_SAS_TOKEN: $(statesas)
              inputs:
                provider: 'azurerm'
                command: 'init'
+               commandOptions: '-backend-config="sas_token=$TF_STATE_BLOB_SAS_TOKEN"'
                backendServiceArm: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
                backendAzureRmResourceGroupName: 'BotsEnvironment'
                backendAzureRmStorageAccountName: 'generastorageamin'
-               backendAzureRmContainerName: 'devopsterraform'
-               backendAzureRmKey: 'devopsterraform'
+               backendAzureRmContainerName: 'devopsstate'
+               backendAzureRmKey: 'terraform.tfstate'
+           - task: DownloadSecureFile@1
+             name: varsFile
+             displayName: 'Download secure file'
+             inputs:
+               secureFile: 'terraform.tfvars'
            - task: TerraformTaskV2@2
+             displayName: 'Terraform plan'
              inputs:
                provider: 'azurerm'
                command: 'plan'
+               commandOptions: '-var-file $(varsFile.secureFilePath)'
                environmentServiceNameAzureRM: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
            - task: TerraformTaskV2@2
+             displayName: 'Terraform apply'
              inputs:
                provider: 'azurerm'
                command: 'apply'
+               commandOptions: '-var-file $(varsFile.secureFilePath)'
                environmentServiceNameAzureRM: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
 
 
