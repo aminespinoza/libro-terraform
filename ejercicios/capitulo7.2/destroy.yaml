@@ -1,0 +1,41 @@
+trigger:
+ branches:
+   include:
+     - destroyextension
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+- stage: Destroy
+  jobs:
+    - job: Destroy
+      continueOnError: false
+      steps:
+      - task: TerraformInstaller@0
+        displayName: 'Terraform install'
+        inputs:
+          terraformVersion: 'latest'
+      - task: TerraformCLI@0
+        displayName: 'Terraform init'
+        inputs:
+          command: 'init'
+          backendType: 'azurerm'
+          backendServiceArm: 'Azure Corp Account (189ad0e9-2814-4280-905d-891d3e2aca06)'
+          backendAzureRmResourceGroupName: 'BotsEnvironment'
+          backendAzureRmStorageAccountName: 'generastorageamin'
+          backendAzureRmContainerName: 'devopslibrotf'
+          backendAzureRmKey: 'terraform.tfstate'
+
+      - task: DownloadSecureFile@1
+        name: varsFile
+        displayName: 'Download secure file'
+        inputs:
+          secureFile: 'terraform.tfvars'
+
+      - task: TerraformCLI@0
+        inputs:
+          command: 'destroy'
+          environmentServiceName: 'Azure Corp Account (189ad0e9-2814-4280-905d-891d3e2aca06)'
+          commandOptions: '-var-file $(varsFile.secureFilePath)'
+          allowTelemetryCollection: false

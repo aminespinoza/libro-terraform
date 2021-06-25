@@ -1,10 +1,8 @@
 trigger:
-  branches:
-    include:
-      - main
+- charlesextension
 
-variables:
-  - group: SecureVariables
+pool:
+  vmImage: ubuntu-latest
 
 stages:
 - stage: validate
@@ -15,34 +13,34 @@ stages:
       - task: TerraformInstaller@0
         displayName: 'Terraform install'
         inputs:
-          terraformVersion: '0.14.4'
-      - task: TerraformTaskV2@2
-        displayName: 'Init Terraform'
-        env:
-          TF_STATE_BLOB_SAS_TOKEN: $(statesas)
+          terraformVersion: 'latest'
+      - task: TerraformCLI@0
+        displayName: 'Terraform init'
         inputs:
-          provider: 'azurerm'
           command: 'init'
-          commandOptions: '-backend-config="sas_token=$TF_STATE_BLOB_SAS_TOKEN"'
-          backendServiceArm: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
+          backendType: 'azurerm'
+          backendServiceArm: 'Azure Corp Account (189ad0e9-2814-4280-905d-891d3e2aca06)'
           backendAzureRmResourceGroupName: 'BotsEnvironment'
           backendAzureRmStorageAccountName: 'generastorageamin'
-          backendAzureRmContainerName: 'devopsstate'
+          backendAzureRmContainerName: 'devopslibrotf'
           backendAzureRmKey: 'terraform.tfstate'
-      - task: TerraformTaskV2@2
-        displayName: 'Validate Terraform'
-        inputs:
-          provider: 'azurerm'
-          command: 'validate'
       
-      - task: CmdLine@2
+      - task: TerraformCLI@0
+        displayName: 'Terraform validate'
+        inputs:
+          command: 'validate'
+          allowTelemetryCollection: false
+
+      - task: Bash@3
         displayName: 'Terraform format'
         inputs:
+          targetType: 'inline'
           script: |
             terraform fmt --recursive
             
             echo Formatting all Terraform files
           workingDirectory: '$(System.DefaultWorkingDirectory)'
+
 - stage: deploy
   jobs:
     - deployment: Terraform_deploy
@@ -54,40 +52,37 @@ stages:
          steps:
            - checkout: self
            - task: TerraformInstaller@0
-             displayName: 'install'
              inputs:
-               terraformVersion: '0.14.4'
-           - task: TerraformTaskV2@2
-             displayName: 'Init Terraform'
-             env:
-              TF_STATE_BLOB_SAS_TOKEN: $(statesas)
+               terraformVersion: 'latest'
+           - task: TerraformCLI@0
+             displayName: 'Terraform init'
              inputs:
-               provider: 'azurerm'
                command: 'init'
-               commandOptions: '-backend-config="sas_token=$TF_STATE_BLOB_SAS_TOKEN"'
-               backendServiceArm: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
+               backendType: 'azurerm'
+               backendServiceArm: 'Azure Corp Account (189ad0e9-2814-4280-905d-891d3e2aca06)'
                backendAzureRmResourceGroupName: 'BotsEnvironment'
                backendAzureRmStorageAccountName: 'generastorageamin'
-               backendAzureRmContainerName: 'devopsstate'
+               backendAzureRmContainerName: 'devopslibrotf'
                backendAzureRmKey: 'terraform.tfstate'
+          
            - task: DownloadSecureFile@1
              name: varsFile
              displayName: 'Download secure file'
              inputs:
                secureFile: 'terraform.tfvars'
-           - task: TerraformTaskV2@2
+
+           - task: TerraformCLI@0
              displayName: 'Terraform plan'
              inputs:
-               provider: 'azurerm'
                command: 'plan'
+               environmentServiceName: 'Azure Corp Account (189ad0e9-2814-4280-905d-891d3e2aca06)'
                commandOptions: '-var-file $(varsFile.secureFilePath)'
-               environmentServiceNameAzureRM: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
-           - task: TerraformTaskV2@2
+               allowTelemetryCollection: false
+            
+           - task: TerraformCLI@0
              displayName: 'Terraform apply'
              inputs:
-               provider: 'azurerm'
                command: 'apply'
+               environmentServiceName: 'Azure Corp Account (189ad0e9-2814-4280-905d-891d3e2aca06)'
                commandOptions: '-var-file $(varsFile.secureFilePath)'
-               environmentServiceNameAzureRM: 'Azure Corp Account(189ad0e9-2814-4280-905d-891d3e2aca06)'
-
-
+               allowTelemetryCollection: false
